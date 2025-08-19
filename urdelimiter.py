@@ -1,36 +1,76 @@
 import re
+import tkinter as tk
+from tkinter import messagebox
 
-#colección de url's ej: "https://drive.google.com/file/d/1qNn227KlbPsbN92jbXZW6O9U2rzwbhlc/view?usp=sharing", importante poner "," al final de cada array, todas van dentro de los corchetes []
-urls = [
-    #ingresa tus url's aquí
-]
+def procesar_urls():
+    entrada = text_area.get("1.0", tk.END).strip().splitlines()
+    ids_validos = []
+    ids_invalidos = []
 
-ids = []
-invalidas = []
+    for url in entrada:
+        match = re.search(r'/d/([^/]+)/', url)
+        if match:
+            candidate = match.group(1)
+            if len(candidate) in (33, 34):  
+                ids_validos.append(candidate)
+            else:
+                ids_invalidos.append(candidate)
+        elif re.fullmatch(r"[A-Za-z0-9_-]{33,34}", url):
+            ids_validos.append(url)
+        else:
+            if url:  
+                ids_invalidos.append(url)
 
-for url in urls:
-    match = re.search(r'/d/([^/]+)/', url)
-    if match:
-        ids.append(match.group(1))
+    salida_text.delete("1.0", tk.END)
+
+    total_urls = len([u for u in entrada if u.strip()]) 
+    total_validos = len(ids_validos)
+    total_invalidos = len(ids_invalidos)
+
+    salida_text.insert(tk.END, f"Total ingresados: {total_urls}\n")
+    salida_text.insert(tk.END, f"Válidos: {total_validos}\n")
+    salida_text.insert(tk.END, f"Inválidos: {total_invalidos}\n\n")
+
+    if ids_validos:
+        longitudes = {len(i) for i in ids_validos}
+        if len(longitudes) == 1:
+            salida_text.insert(tk.END, f"Todos los IDs válidos tienen {longitudes.pop()} caracteres\n\n")
+        else:
+            salida_text.insert(tk.END, "Los IDs válidos tienen distintas longitudes:\n")
+            for i in ids_validos:
+                salida_text.insert(tk.END, f"- {i} → {len(i)} caracteres\n")
+
+        salida_text.insert(tk.END, "\nIDs válidos:\n")
+        for i in ids_validos:
+            salida_text.insert(tk.END, f"{i}\n")
     else:
-        invalidas.append(url)
+        salida_text.insert(tk.END, "No se encontraron IDs válidos.\n")
 
-# validación de longitud
-if ids:
-    longitudes = {len(i) for i in ids}
-    if len(longitudes) == 1:
-        print(f"Todos los IDs tienen {longitudes.pop()} caracteres")
-    else:
-        print("No todos los IDs tienen la misma longitud")
-        for i in ids:
-            print(f"{i} → {len(i)} caracteres")
+    if ids_invalidos:
+        salida_text.insert(tk.END, "\nIDs/URLs inválidos:\n")
+        for i in ids_invalidos:
+            salida_text.insert(tk.END, f"{i}\n")
 
-# mostrar url's que no cumplen con el formato (encontradas)
-if invalidas:
-    print("\n URLs que no cumplen el formato esperado:")
-    for url in invalidas:
-        print(url)
+def limpiar_campos():
+    text_area.delete("1.0", tk.END)   
+    salida_text.delete("1.0", tk.END) 
 
-print("\nIDs extraídos:", ids)
+ventana = tk.Tk()
+ventana.title("Extractor de IDs de Google Drive")
+ventana.geometry("600x500")
 
-#revisa la consola para obtener tus urls 
+tk.Label(ventana, text="Adjunta las URL's o ID's aquí:").pack()
+text_area = tk.Text(ventana, height=10, width=70)
+text_area.pack(pady=10)
+
+frame_botones = tk.Frame(ventana)
+frame_botones.pack(pady=5)
+
+tk.Button(frame_botones, text="Extraer ID's", command=procesar_urls, width=15).pack(side=tk.LEFT, padx=5)
+tk.Button(frame_botones, text="Limpiar", command=limpiar_campos, width=15).pack(side=tk.LEFT, padx=5)
+
+tk.Label(ventana, text="Fragmento ID:").pack()
+salida_text = tk.Text(ventana, height=15, width=70)
+salida_text.pack(pady=10)
+
+ventana.mainloop()
